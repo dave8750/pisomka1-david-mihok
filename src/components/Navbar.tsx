@@ -2,75 +2,86 @@
 
 import * as React from 'react';
 import Box from '@mui/material/Box';
-import BottomNavigation from '@mui/material/BottomNavigation';
-import BottomNavigationAction from '@mui/material/BottomNavigationAction';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import IconButton from '@mui/material/IconButton';
+import MenuIcon from '@mui/icons-material/Menu';
 import HomeIcon from '@mui/icons-material/Home';
 import PersonIcon from '@mui/icons-material/Person';
-import ArticleIcon from '@mui/icons-material/Article';
 import LoginIcon from '@mui/icons-material/Login';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
-import LogoutIcon from '@mui/icons-material/Logout'; // Add an icon for Sign Out
+import LogoutIcon from '@mui/icons-material/Logout';
 import { useRouter } from 'next/navigation';
 import { signOut } from "next-auth/react";
 import { Session } from "next-auth";
 
-interface SimpleBottomNavigationProps {
+interface MenuNavigationProps {
   session: Session | null; // Accept session as a prop
 }
 
-export default function SimpleBottomNavigation({ session }: SimpleBottomNavigationProps) {
-  const [value, setValue] = React.useState(0);
+export default function MenuNavigation({ session }: MenuNavigationProps) {
   const router = useRouter();
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
-  const handleNavigation = (newValue: number) => {
-    setValue(newValue);
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
 
-    switch (newValue) {
-      case 0:
-        router.push('/'); // Home
-        break;
-      case 1:
-        router.push('/profil'); // Profile
-        break;
-      case 2:
-        router.push('/prispevok'); // Posts
-        break;
-      case 3:
-        if (!session) {
-          router.push('/auth/prihlasenie'); // Login
-        } else {
-          signOut({ callbackUrl: '/' }); // Sign Out
-        }
-        break;
-      case 4:
-        router.push('/auth/registracia'); // Registration
-        break;
-      default:
-        router.push('/');
-    }
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleNavigation = (path: string) => {
+    router.push(path);
+    handleMenuClose();
+  };
+
+  const handleSignOut = () => {
+    signOut({ callbackUrl: '/' });
+    handleMenuClose();
   };
 
   return (
-    <Box sx={{ width: '100%', position: 'fixed', bottom: 0 }}>
-      <BottomNavigation
-        showLabels
-        value={value}
-        onChange={(event, newValue) => {
-          handleNavigation(newValue);
-        }}
+    <Box sx={{ display: 'flex', justifyContent: 'flex-end', padding: 1 }}>
+      <IconButton
+        aria-label="menu"
+        aria-controls="menu-appbar"
+        aria-haspopup="true"
+        onClick={handleMenuOpen}
+        color="inherit"
       >
-        <BottomNavigationAction label="Domov" icon={<HomeIcon />} />
-        <BottomNavigationAction label="Profil" icon={<PersonIcon />} />
-        <BottomNavigationAction label="Prispevky" icon={<ArticleIcon />} />
+        <MenuIcon />
+      </IconButton>
+      
+      <Menu
+        id="menu-appbar"
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        {/* Home option available to all users */}
+        <MenuItem onClick={() => handleNavigation('/')}>
+          <HomeIcon sx={{ mr: 1 }} /> Home
+        </MenuItem>
+
+        {/* Conditional options based on authentication status */}
         {session ? (
-          <BottomNavigationAction label="Odhlasit" icon={<LogoutIcon />} /> // Sign Out button
+          <>
+            <MenuItem onClick={handleSignOut}>
+              <LogoutIcon sx={{ mr: 1 }} /> Sign Out
+            </MenuItem>
+          </>
         ) : (
-          <BottomNavigationAction label="Prihlasenie" icon={<LoginIcon />} />
+          <>
+            <MenuItem onClick={() => handleNavigation('/auth/prihlasenie')}>
+              <LoginIcon sx={{ mr: 1 }} /> Sign In
+            </MenuItem>
+            <MenuItem onClick={() => handleNavigation('/auth/registracia')}>
+              <HowToRegIcon sx={{ mr: 1 }} /> Register
+            </MenuItem>
+          </>
         )}
-        {!session && (
-          <BottomNavigationAction label="Registracia" icon={<HowToRegIcon />} />
-        )}
-      </BottomNavigation>
+      </Menu>
     </Box>
   );
 }
